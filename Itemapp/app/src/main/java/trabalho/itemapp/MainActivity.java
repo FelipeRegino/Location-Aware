@@ -15,6 +15,15 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import retrofit.Call;
+import retrofit.Callback;
+import retrofit.GsonConverterFactory;
+import retrofit.Response;
+import retrofit.Retrofit;
+import trabalho.itemapp.API.LocaleAPI;
 
 
 public class MainActivity extends ActionBarActivity
@@ -22,11 +31,14 @@ public class MainActivity extends ActionBarActivity
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener {
 
+    private LocaleAPI localeAPI;
+    public static final String TAG = "LOG";
+    public static final String API = "http://******/****/***";
     private TextView tvCoordinate;
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
     public  double longitude, latitude;
-    public LatLng itemLocation;
+    public  LatLng Locale;
 
 
     @Override
@@ -34,9 +46,7 @@ public class MainActivity extends ActionBarActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Log.i("LOG", "onCreate()");
-
-        tvCoordinate = (TextView) findViewById(R.id.tv_coordinate);
-
+        
         callConnection();
     }
 
@@ -48,6 +58,14 @@ public class MainActivity extends ActionBarActivity
         if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
             startLocationUpdate();
         }
+        Gson gson = new GsonBuilder().registerTypeAdapter(itemLocation.class, new LocDes()).create();
+
+        Retrofit retrofit = new Retrofit
+                .Builder()
+                .baseUrl(API)
+                .addConverterFactory(GsonConverterFactory.create(gson))
+                .build();
+        localeAPI = retrofit.create(LocaleAPI.class);
     }
 
 
@@ -109,10 +127,9 @@ public class MainActivity extends ActionBarActivity
         if(l != null){
             Log.i("LOG", "latitude: "+l.getLatitude());
             Log.i("LOG", "longitude: "+l.getLongitude());
-            tvCoordinate.setText(l.getLatitude() + "," + l.getLongitude());
             longitude = l.getLongitude();
             latitude = l.getLatitude();
-            itemLocation = new LatLng(latitude, longitude);
+            Locale = new LatLng(latitude, longitude);
         }
 
         startLocationUpdate();
@@ -131,8 +148,21 @@ public class MainActivity extends ActionBarActivity
     public void onLocationChanged(Location location) {
         longitude = location.getLongitude();
         latitude = location.getLatitude();
-        itemLocation = new LatLng(latitude, longitude);
-        tvCoordinate.setText(String.valueOf(itemLocation));
+        Locale = new LatLng(latitude, longitude);
+
+        itemLocation loc = new itemLocation(Locale);
+
+
+        Call<itemLocation> call = localeAPI.saveLocale("method-ws=#####", new Gson().toJson(loc));
+        call.enqueue(new Callback<itemLocation>() {
+            @Override
+            public void onResponse(Response<itemLocation> response, Retrofit retrofit) {}
+            @Override
+            public void onFailure(Throwable t) {
+                Log.i(TAG, "Error SAVE LOCALE: " + t.getMessage());
+            }
+        });
+
     }
 }
 
